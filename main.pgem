@@ -1,0 +1,15 @@
+macro include {-> <stdio.h> <-}
+
+our codeExit: u8 = spawn our {->0;<-}
+
+spawn {-> 
+  codeExit = 0;
+<-}
+
+spawn our {-> 
+  printf("Hello world");
+<-} 
+
+spawn our {->
+  return codeExit;
+<-}
