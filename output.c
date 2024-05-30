@@ -16,22 +16,27 @@ typedef char* string;
 int
 main()
 {
-  u8 codeExit =    0; 
-  int back_test = 0;
-goto after_def_test;
-test: {
+  int back_showMessage = 0;
+goto after_def_showMessage;
+showMessage: {
 
 
   {   
-    printf("Hello world");
+    printf("Hello, world!\n");
     }
-    if(back_test == 0) goto back_point_0;
-// back-stack from 'test'.
+    if(back_showMessage == 0) goto back_point_0;
+// back-stack from 'showMessage'.
 }
-after_def_test:
-  back_test = 0;
-goto test;
+after_def_showMessage:
+  {  
+  printf("before the function is called.\n");
+  }
+  back_showMessage = 0;
+goto showMessage;
 back_point_0: {}
+  {  
+  printf("back-stack working properly.\n");
+  }
    
   return 0;
  

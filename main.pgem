@@ -1,14 +1,20 @@
 macro include {-> <stdio.h> <-}
 
-our codeExit: u8 = spawn our {->0;<-}
-
-def test()
+def showMessage()
   spawn {-> 
-    printf("Hello world");
+    printf("Hello, world!\n");
   <-}
 end
 
-call test
+spawn {->
+  printf("before the function is called.\n");
+<-}
+
+call showMessage
+
+spawn {->
+  printf("back-stack working properly.\n");
+<-}
 
 spawn our {->
   return 0;
