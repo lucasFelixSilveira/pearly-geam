@@ -8,11 +8,11 @@ my $file_name;
 my $tk_len = 0;
 my $macros = "";
 my $content = "";
-my @closses_when = ();
 my @closses_stack = ();
-my $closses_when_len = 0;
-my @closses_stack_index = ();
-my $closses_stack_length = 0;
+my $closses_len = 0;
+
+my $stack_size = 0;
+my @stack_calls = ();
 
 my $result = "typedef char bool;
 typedef unsigned char u8;
@@ -60,15 +60,7 @@ sub add_macro {
 
 sub add_end_stack {
   my $end = shift @_;
-  my $first = shift @_;
-
-  if( $first eq 1 ) {
-    @closses_when[$closses_when_len++] = $scope; 
-  }
-
-  @closses_stack[$closses_stack_length] = $end;
-  @closses_stack_index[$closses_stack_length] = $scope;
-  $closses_stack_length++;
+  @closses_stack[$closses_len++] = $end;
 }
 
 sub add_line {
@@ -95,6 +87,7 @@ my $its_not_semi_sign = 4;
 my $its_not_semi = 5;
 my $its_not_type = 6;
 my $its_not_codeblock = 7;
+my $error_in_def = 7;
 sub spawn_error {
   my $error = shift @_;
   my @errors = (
@@ -105,7 +98,8 @@ sub spawn_error {
     "It's not a semi or a sign",
     "It's not a semi",
     "It's not valid type",
-    "It's not a code-block string"
+    "It's not a code-block string",
+    "Error in def"
   );
 
   print "Error! - [$error]\n x ", @errors[$error], "\n";
@@ -114,8 +108,8 @@ sub spawn_error {
 
 sub validate {
   my @keywords = (
-    "use",   "my",   "our",  "end",   "sub",    "type",   "then", "end_process",
-    "spawn", "goto", "type", "union", "struct", "static", "do",   "macro"
+    "use",   "my",   "our",  "end",   "def",    "type",   "then", "end_process",
+    "spawn", "goto", "type", "union", "struct", "static", "do",   "macro", "call"
   );
 
   my $keyword;
@@ -125,7 +119,7 @@ sub validate {
     }
   }
 
-  if( $buff =~ /^[a-zA-Z_][a-zA-Z0-9_]*$/ ) {
+  if( $buff =~ /^[a-zA-Z_]{1}[a-zA-Z0-9_]*$/ ) {
     return 3;
   }
 
@@ -221,43 +215,39 @@ sub is_type {
   my $only_get = shift @_;
   if( $type =~ /[\[](\d+|_); (\w+|\W+)[\]]/ ) { 
     if($1 ne "_") {
+      if( $only_get ) {
+        return 1;
+      }
       return "$2 $name\[$1]";
     } else {
+      if( $only_get ) {
+        return 1;
+      }
       return "$2 *$name";
     }
   } else {
     foreach my $type_ (@types) {
       if( $type_ eq $type ) {
+        if( $only_get ) {
+          return 1;
+        }
         return "$type $name";
       }
+    }
+    if( $only_get ) {
+      return 0;
     }
     spawn_error $its_not_type;
   }
 }
 
 sub closses {
-  my $period = @closses_when[$closses_when_len];
-  $closses_when_len--;
-  if( $period eq $closses_stack_length ) {
-    $closses_stack_length--;
+  $closses_len--;
+  my $last = @closses_stack[$closses_len];
+  my $ident = get_ident $scope;
 
-    my $bracket = @closses_stack[$closses_stack_length];
-    my $ident = get_ident(@closses_stack_index[$closses_stack_length]);
-    
-    return "$ident$bracket"
-  } elsif( $period < $closses_stack_length ) {
-    my $i = $closses_stack_length;
-
-    my $result = "";
-    while($i > $period) {
-      $closses_stack_length--;
-      my $ident = get_ident(@closses_stack_index[$closses_stack_length]);
-      my $bracket = @closses_stack[$closses_stack_length];
-      $result = "$result$ident$bracket\n";
-      $i--;
-    }
-    return $result;
-  }
+  my $result = "$ident$last";
+  return $result;
 }
 
 sub lexer {
@@ -350,8 +340,7 @@ sub lexer {
 
 sub parser {
   my $i = 0;
-
-  add_end_stack "\x0d}", 1;
+  my $id = 0;
 
   while($i < $tk_len) {
     my $token = @tokens[$i++];
@@ -405,7 +394,91 @@ sub parser {
 
       my $code = substr($code_block, 3, length($code_block)-6);
       add_macro "$name $code"
+    } elsif( $token eq "def" ) {
+      my $name = @tokens[$i++];
+      is_identifier $name;
+
+      my $open = @tokens[$i++];
+      if( $open ne "(" ) {
+        spawn_error $error_in_def;
+      } 
+
+      my $t = 1;
+      my $j = 0;
+      my @args = ();
+      my @names = ();
+      my $arg = 0;
+      while($t) {
+        my $k = 0;
+        my $current = @tokens[$i++];
+        if( $current eq ")" ) {
+          $t = 0;
+          print "finallized def";
+        } else {
+          if( $j ge 1 ) {
+            if( $current eq "," ) {
+              $current = @tokens[$i++];
+            } else {
+              spawn_error $error_in_def;
+            }
+          }
+
+          $i--;
+          my $name = @tokens[$i++];
+          print $name, "\n";
+          is_identifier $name;
+
+          my $collon = @tokens[$i++];
+          is_collon $collon;
+
+          my $type = is_type @tokens[$i++], $name;
+          @names[$arg] = $name;
+          @args[$arg++] = $type;
+
+        }
+
+      }
+
+      my $args = "";
+      my $j = 0;
+      my $ident = get_ident $scope;
+      my $fun_name = $name;
+      foreach $arg (@args) {
+        my $name = @names[$j++];
+        $args = "$ident$args$arg = call_$fun_name.$name;\n"
+      }
+
+      my $n = uc($name);
+      my $struct_name = "DEF_$n"; 
+      my $def = "";
+      if( $j ne 0 ) {
+        $def = "\nstruct $struct_name call_$name = NULL;";
+      }
+      add_line "int back_$name = 0;\ngoto after_def_$name;$def\n$name: {\n\n$args";
+
+      add_end_stack "// back-stack from '$name'.\n}\nafter_def_$name:", 1;
+    } elsif( $token eq "end" ) {
+      $scope--;
+      add_line closses();
+    } elsif( $token eq "call" ) {
+      my $name = @tokens[$i++];
+      is_identifier $name;
+
+      push @stack_calls, { name => $name, id => $id };
+      $stack_size++;
+
+      add_line "back_$name = $id;\ngoto $name;\nback_point_$id: {}";
+      $id++;
     }
+  } 
+}
+
+sub stack_call {
+  foreach my $call (@stack_calls) {
+    my $name = $call->{name};
+    my $id = $call->{id};
+    
+    $result =~ s{// back-stack from '$name'.}{if(back_$name == $id) goto back_point_$id;\n// back-stack from '$name'.};
   }
 }
 
@@ -423,8 +496,9 @@ foreach $file_name (@ARGV){
   lexer $content;
   parser();
 
-  my $close = closses(); 
-  $result = "$macros\n$result\n$close";
+  $result = "$macros\n$result\n}";
+
+  stack_call();
 
   print $result;
   open(my $output, '>', "output.c");

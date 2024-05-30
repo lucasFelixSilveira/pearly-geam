@@ -17,14 +17,23 @@ int
 main()
 {
   u8 codeExit =    0; 
+  int back_test = 0;
+goto after_def_test;
+test: {
+
+
   {   
-  codeExit = 0;
-  }
-    
-  printf("Hello world");
- 
+    printf("Hello world");
+    }
+    if(back_test == 0) goto back_point_0;
+// back-stack from 'test'.
+}
+after_def_test:
+  back_test = 0;
+goto test;
+back_point_0: {}
    
-  return codeExit;
+  return 0;
  
 
-  }
+}

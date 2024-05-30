@@ -2,14 +2,14 @@ macro include {-> <stdio.h> <-}
 
 our codeExit: u8 = spawn our {->0;<-}
 
-spawn {-> 
-  codeExit = 0;
-<-}
+def test()
+  spawn {-> 
+    printf("Hello world");
+  <-}
+end
 
-spawn our {-> 
-  printf("Hello world");
-<-} 
+call test
 
 spawn our {->
-  return codeExit;
+  return 0;
 <-}
