@@ -21,6 +21,7 @@ macro include {-> <stdlib.h> <-}
 def print(str: [&u8])
   spawn {-> 
     printf("printed: %s\n", str);
+    free(str); // Memory release required as values ​​are reallocated
   <-}
 end
 

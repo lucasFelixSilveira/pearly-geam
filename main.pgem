@@ -1,15 +1,16 @@
 macro include {-> <stdio.h> <-}
 macro include {-> <stdlib.h> <-}
 
-def print(fmt: [&u8])
+def print(str: [&u8])
   spawn {-> 
-    printf("printed: %s\n", fmt);
+    printf("printed: %s\n", str);
+    free(str); // Memory release required as values ​​are reallocated
   <-}
 end
 
 our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
 pendence print
-arg [!fmt] msg
+arg [!str] msg
 call
 
 spawn our {->

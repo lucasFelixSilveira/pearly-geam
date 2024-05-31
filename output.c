@@ -16,7 +16,7 @@ typedef char* string;
 
 
 struct DEF_PRINT {
-  u8 *fmt;
+  u8 *str;
 };
 
 int
@@ -27,17 +27,18 @@ goto after_def_print;
 struct DEF_PRINT call_print;
 print: {
 
-  u8 *fmt = call_print.fmt;
+  u8 *str = call_print.str;
 
   {   
-    printf("printed: %s\n", fmt);
+    printf("printed: %s\n", str);
+    free(str);
     }
     if(back_print == 0) goto back_point_0;
 // back-stack from 'print'.
 }
 after_def_print: {}
   u8 *msg =    "My name is Lucas!"; 
-  call_print.fmt = msg;
+  call_print.str = msg;
   back_print = 0;
 goto print;
 back_point_0: {}
