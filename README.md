@@ -12,3 +12,25 @@ spawn our {->
   return 0;
 <-}
 ```
+Or, you can choose to create a print function, so that you can use it as your main print function.
+
+```pgem
+macro include {-> <stdio.h> <-}
+macro include {-> <stdlib.h> <-}
+
+def print(str: [&u8])
+  spawn {-> 
+    printf("printed: %s\n", str);
+  <-}
+end
+
+our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
+pendence print
+arg [!str] msg
+call
+
+spawn our {->
+  free(msg);
+  return 0;
+<-}
+```

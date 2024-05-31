@@ -15,42 +15,34 @@ typedef long long i128;
 typedef char* string;
 
 
-struct DEF_SHOWMESSAGE {
-  u8 *text;
+struct DEF_PRINT {
+  u8 *fmt;
 };
 
 int
 main()
 {
-  int back_showMessage = 0;
-goto after_def_showMessage;
-struct DEF_SHOWMESSAGE call_showMessage;
-showMessage: {
+  int back_print = 0;
+goto after_def_print;
+struct DEF_PRINT call_print;
+print: {
 
-  u8 *text = call_showMessage.text;
+  u8 *fmt = call_print.fmt;
 
   {   
-    printf("Hello, world! He is your text: \"%s\"\n", text);
+    printf("printed: %s\n", fmt);
     }
-    if(back_showMessage == 0) goto back_point_0;
-// back-stack from 'showMessage'.
+    if(back_print == 0) goto back_point_0;
+// back-stack from 'print'.
 }
-after_def_showMessage:
-  {  
-  printf("before the function is called.\n");
-  }
+after_def_print: {}
   u8 *msg =    "My name is Lucas!"; 
-  call_showMessage.text = msg;
-  back_showMessage = 0;
-goto showMessage;
+  call_print.fmt = msg;
+  back_print = 0;
+goto print;
 back_point_0: {}
-  {  
-  free(msg);
-  }
-  {  
-  printf("back-stack working properly.\n");
-  }
    
+  free(msg);
   return 0;
  
 

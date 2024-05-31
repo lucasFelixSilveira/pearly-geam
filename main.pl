@@ -492,7 +492,7 @@ sub parser {
       }
       add_line "int back_$name = 0;\ngoto after_def_$name;$def\n$name: {\n\n$args";
 
-      add_end_stack "// back-stack from '$name'.\n}\nafter_def_$name:", 1;
+      add_end_stack "// back-stack from '$name'.\n}\nafter_def_$name: {}", 1;
     } elsif( $token eq "end" ) {
       $scope--;
       add_line closses();
