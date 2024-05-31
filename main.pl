@@ -7,6 +7,7 @@ my $scope = 0;
 my $file_name;
 my $tk_len = 0;
 my $macros = "";
+my $structs = "";
 my $content = "";
 my @closses_stack = ();
 my $closses_len = 0;
@@ -25,7 +26,7 @@ typedef unsigned long u64;
 typedef long i64;
 typedef unsigned long long u128;
 typedef long long i128;
-typedef char* string;\n\nint\nmain()\n{\n"; 
+typedef char* string;\n\n// structs arguments\n\nint\nmain()\n{\n"; 
 
 my $type_len = 0;
 my @types = (
@@ -33,8 +34,7 @@ my @types = (
   "u16", "i16",
   "u32", "i32",
   "u64", "i64",
-  "u128", "i128",
-  "string"
+  "u128", "i128"
 );
 
 sub get_ident {
@@ -45,6 +45,11 @@ sub get_ident {
     $max--;
   }
   return $ident;
+}
+
+sub add_struct {
+  my $struct = shift @_;
+  $structs = "$structs\n$struct";
 }
 
 sub add_macro {
@@ -88,6 +93,7 @@ my $its_not_semi = 5;
 my $its_not_type = 6;
 my $its_not_codeblock = 7;
 my $error_in_def = 7;
+my $its_not_literal = 6;
 sub spawn_error {
   my $error = shift @_;
   my @errors = (
@@ -99,7 +105,8 @@ sub spawn_error {
     "It's not a semi",
     "It's not valid type",
     "It's not a code-block string",
-    "Error in def"
+    "Error in def",
+    "It's not a Litearal"
   );
 
   print "Error! - [$error]\n x ", @errors[$error], "\n";
@@ -209,16 +216,38 @@ sub is_collon {
   }
 }
 
+sub is_literal {
+  my $literal = shift @_;
+
+  if( not $literal =~ /[[][!](\w*|\W*\d*)[]]/ ) {
+    spawn_error $its_not_literal;
+  }
+}
+
 sub is_type {
   my $type = shift @_;
   my $name = shift @_;
   my $only_get = shift @_;
-  if( $type =~ /[\[](\d+|_); (\w+|\W+)[\]]/ ) { 
+  if( $type =~ /[\[]((\d+|_)[;]|[&]*)\s*(\w+|\W+)[\]]/ ) { 
     if($1 ne "_") {
       if( $only_get ) {
         return 1;
       }
-      return "$2 $name\[$1]";
+
+      my $size = $1;
+      my $type = $3;
+      if( $size =~ /\d+/ ) {
+        return "$type $name\[$size]";
+      } elsif( $size =~ /[&]+/ ){
+        my $ptr = "";
+        my $level = 0;
+        my $qnt = length($size);
+        while($level < $qnt) {
+          $level++;
+          $ptr = "$ptr*";
+        }
+        return "$type $ptr$name";
+      }
     } else {
       if( $only_get ) {
         return 1;
@@ -264,7 +293,7 @@ sub lexer {
     if( $ignore ge 1 ) {
       $ignore--;
     } 
-    elsif( $c == "{" and @tape[$i+1] eq "-" and @tape[$i+2] eq ">" ) {
+    elsif( $c eq "{" and @tape[$i+1] eq "-" and @tape[$i+2] eq ">" ) {
       $ignore = 2;
       if( $buff ne "" ) {
         @tokens[$tk++] = $buff;
@@ -277,7 +306,6 @@ sub lexer {
       while($l) {
         $ignore++;
         my $char = @tape[$i++];
-        print $char;
         if( $char eq "<" and @tape[$i++] eq "-" ) {
           if( @tape[$i++] eq "}" ) {
             $l = 0;
@@ -341,6 +369,9 @@ sub lexer {
 sub parser {
   my $i = 0;
   my $id = 0;
+
+  my $in_pendence;
+  my $pendence = 0;
 
   while($i < $tk_len) {
     my $token = @tokens[$i++];
@@ -413,7 +444,6 @@ sub parser {
         my $current = @tokens[$i++];
         if( $current eq ")" ) {
           $t = 0;
-          print "finallized def";
         } else {
           if( $j ge 1 ) {
             if( $current eq "," ) {
@@ -439,20 +469,26 @@ sub parser {
 
       }
 
+      my $n = uc($name);
+      my $struct_name = "DEF_$n"; 
+
       my $args = "";
+      my $struct = "struct $struct_name {";
       my $j = 0;
       my $ident = get_ident $scope;
       my $fun_name = $name;
       foreach $arg (@args) {
         my $name = @names[$j++];
-        $args = "$ident$args$arg = call_$fun_name.$name;\n"
+        $args = "$ident$args$arg = call_$fun_name.$name;\n";
+        $struct = "$struct\n  $arg;"
       }
+      $struct = "$struct\n};";
 
-      my $n = uc($name);
-      my $struct_name = "DEF_$n"; 
+      add_struct $struct;
+
       my $def = "";
       if( $j ne 0 ) {
-        $def = "\nstruct $struct_name call_$name = NULL;";
+        $def = "\nstruct $struct_name call_$name;";
       }
       add_line "int back_$name = 0;\ngoto after_def_$name;$def\n$name: {\n\n$args";
 
@@ -460,9 +496,29 @@ sub parser {
     } elsif( $token eq "end" ) {
       $scope--;
       add_line closses();
-    } elsif( $token eq "call" ) {
+    } elsif( $token eq "pendence" and $pendence eq 0) {
       my $name = @tokens[$i++];
       is_identifier $name;
+
+      $in_pendence = $name;
+      $pendence = 1;
+    } elsif( $token eq "arg" and $pendence eq 1 ) {
+      my $arg_name = @tokens[$i++];
+      is_literal $arg_name;
+      $arg_name = substr $arg_name, 2, -1; 
+
+      my $var = @tokens[$i++];
+      is_identifier $var;
+
+      add_line "call_$in_pendence.$arg_name = $var;"
+    } elsif( $token eq "call" ) {
+      my $name;
+      if( $pendence eq 0 ) {
+        $name = @tokens[$i++];
+        is_identifier $name;
+      } else {
+        $name = $in_pendence;
+      }
 
       push @stack_calls, { name => $name, id => $id };
       $stack_size++;
@@ -497,6 +553,8 @@ foreach $file_name (@ARGV){
   parser();
 
   $result = "$macros\n$result\n}";
+
+  $result =~ s{// structs arguments}{$structs};
 
   stack_call();
 

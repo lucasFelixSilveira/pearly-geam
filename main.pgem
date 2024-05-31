@@ -1,8 +1,9 @@
 macro include {-> <stdio.h> <-}
+macro include {-> <stdlib.h> <-}
 
-def showMessage()
+def showMessage(text: [&u8])
   spawn {-> 
-    printf("Hello, world!\n");
+    printf("Hello, world! He is your text: \"%s\"\n", text);
   <-}
 end
 
@@ -10,7 +11,15 @@ spawn {->
   printf("before the function is called.\n");
 <-}
 
-call showMessage
+our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
+
+pendence showMessage
+arg [!text] msg
+call
+
+spawn {->
+  free(msg);
+<-}
 
 spawn {->
   printf("back-stack working properly.\n");
