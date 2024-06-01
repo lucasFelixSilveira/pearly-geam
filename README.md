@@ -38,13 +38,12 @@ spawn our {->
 
 # Dictionary
 
-[@arg] `Reference to something external`
-[!lit] `Literally literal`
-[*->var] `Pointing to a variable`
+- **[@arg]** `Reference to something external`
+- **[!lit]** `Literally literal`
+- **[*->var]** `Pointing to a variable`
 
 ### Types
-
-u8 `Primitives`
-[16; u8] `Array`
-[_; u8] `Array of indefinite size`
-[&u8] `Pointer of respective type`
+- **u8** `Primitives`
+- **[16; u8]** `Array`
+- **[_; u8]** `Array of indefinite size`
+- **[&u8]** `Pointer of respective type`
