@@ -21,8 +21,8 @@ macro include {-> <stdlib.h> <-}
 def print(str: [&u8])
   spawn {-> 
     printf("printed: %s\n", str);
-    free(str); // Memory release required as values ​​are reallocated
   <-}
+  [@memory].dump [*->str]
 end
 
 our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
@@ -30,8 +30,21 @@ pendence print
 arg [!str] msg
 call
 
+[@memory].dump [*->msg]
 spawn our {->
-  free(msg);
   return 0;
 <-}
-```
+``` 
+
+# Dictionary
+
+[@arg] `Reference to something external`
+[!lit] `Literally literal`
+[*->var] `Pointing to a variable`
+
+### Types
+
+u8 `Primitives`
+[16; u8] `Array`
+[_; u8] `Array of indefinite size`
+[&u8] `Pointer of respective type`

@@ -15,6 +15,8 @@ my $closses_len = 0;
 my $stack_size = 0;
 my @stack_calls = ();
 
+my @modules = ();
+
 my $result = "typedef char bool;
 typedef unsigned char u8;
 typedef char i8;
@@ -26,7 +28,16 @@ typedef unsigned long u64;
 typedef long i64;
 typedef unsigned long long u128;
 typedef long long i128;
-typedef char* string;\n\n// structs arguments\n\nint\nmain()\n{\n"; 
+typedef char* string;
+
+
+// structs arguments
+
+int
+main()
+{\n"; 
+
+my $puts = "";
 
 my $type_len = 0;
 my @types = (
@@ -34,7 +45,9 @@ my @types = (
   "u16", "i16",
   "u32", "i32",
   "u64", "i64",
-  "u128", "i128"
+  "u128", "i128",
+  "result", "option",
+  "void"
 );
 
 sub get_ident {
@@ -92,8 +105,11 @@ my $its_not_semi_sign = 4;
 my $its_not_semi = 5;
 my $its_not_type = 6;
 my $its_not_codeblock = 7;
-my $error_in_def = 7;
-my $its_not_literal = 6;
+my $error_in_def = 8;
+my $its_not_literal = 9;
+my $its_not_reference = 10;
+my $its_not_dot = 11;
+my $its_not_pointer = 12;
 sub spawn_error {
   my $error = shift @_;
   my @errors = (
@@ -106,7 +122,10 @@ sub spawn_error {
     "It's not valid type",
     "It's not a code-block string",
     "Error in def",
-    "It's not a Litearal"
+    "It's not a Litearal",
+    "It's not a Reference",
+    "It's not a dot",
+    "It's not a pointer"
   );
 
   print "Error! - [$error]\n x ", @errors[$error], "\n";
@@ -148,6 +167,10 @@ sub validate {
     return 7;
   }
 
+  if( $buff eq "." ) {
+    return 8;
+  }
+
   return 0;
 }
 
@@ -166,6 +189,15 @@ sub is_sign {
   $buff = $sign;
   if( validate() ne 4 ) {
     spawn_error $its_not_sign;
+  }
+}
+
+sub is_dot {
+  my $dot = shift @_;
+
+  $buff = $dot;
+  if( validate() ne 8 ) {
+    spawn_error $its_not_dot;
   }
 }
 
@@ -221,6 +253,22 @@ sub is_literal {
 
   if( not $literal =~ /[[][!](\w*|\W*\d*)[]]/ ) {
     spawn_error $its_not_literal;
+  }
+}
+
+sub is_pointer {
+  my $pointer = shift @_;
+
+  if( not $pointer =~ /[[][*][-][>](\w*|\W*\d*)[]]/ ) {
+    spawn_error $its_not_pointer;
+  }
+}
+
+sub is_reference {
+  my $reference = shift @_;
+
+  if( not $reference =~ /[[][@](\w*|\W*\d*)[]]/ ) {
+    spawn_error $its_not_reference;
   }
 }
 
@@ -358,12 +406,12 @@ sub lexer {
     }
   }
 
-  print "{\n";
+  # print "{\n";
   for my $token (@tokens) {
-    print "  Token[$tk_len] {\n    buff: '$token'\n  },\n";
+  #   print "  Token[$tk_len] {\n    buff: '$token'\n  },\n";
     $tk_len++;
   }
-  print "}\n";
+  # print "}\n";
 }
 
 sub parser {
@@ -372,6 +420,10 @@ sub parser {
 
   my $in_pendence;
   my $pendence = 0;
+
+  my @inputs = ();
+
+  my @puts = ();
 
   while($i < $tk_len) {
     my $token = @tokens[$i++];
@@ -455,7 +507,6 @@ sub parser {
 
           $i--;
           my $name = @tokens[$i++];
-          print $name, "\n";
           is_identifier $name;
 
           my $collon = @tokens[$i++];
@@ -525,6 +576,91 @@ sub parser {
 
       add_line "back_$name = $id;\ngoto $name;\nback_point_$id: {}";
       $id++;
+    } elsif ( $token eq "use" ) {
+      my $reference = @tokens[$i++];
+      is_reference $reference;
+
+      my $literal = substr($reference, 2, -1);
+      foreach my $module (@modules) {
+        my $name = $module->{aka};
+        if( $name eq $literal ) {
+          my $h_code = $module->{h};
+          open(my $h, '>', "$name.h");
+          print $h "$h_code";
+          close $h;
+
+          my $c_code = $module->{c};
+          open(my $c, '>', "$name.c");
+          print $c "$c_code";
+          close $c;
+          print "created lib: '$name' in your workspace.\n";
+
+          add_macro "include \"$name.h\"";
+          $puts = "$puts\nchar *put_$name;";
+        }
+      }
+      $puts = "$puts\n";
+    }else {
+      print $token;
+      if( $token =~ /[[][@](\w*|\W*\d*)[]]/ ) {
+        my $reference = $1;
+        my $strong = uc($reference);
+        my $dot = @tokens[$i++];
+        is_dot $dot;
+
+        my $fun = @tokens[$i++];
+        is_identifier $fun;
+
+        if( $fun eq "init" ) {
+          my $pointer = @tokens[$i++]; 
+          is_pointer $pointer;
+
+          my $name = substr($pointer, 4, -1);
+          my $arg = "";
+          foreach my $put (@puts) {
+            my $owner = $put->{owner};
+            if( $owner eq $reference ) {
+              $arg = "put_$reference";
+            }
+          }
+          add_line "LIB_$strong $name = init_$reference($arg);";
+          
+          if( $arg eq "" ) {
+            my @nputs = ();
+            foreach my $put (@puts) {
+              my $owner = $put->{owner};
+              if( $owner ne $reference ) {
+                push @nputs, { owner => $reference };
+              }
+            }
+            @puts = @nputs;
+          }
+        } elsif( $fun eq "put" ) {
+          my $input = @tokens[$i++];
+
+          if( 
+            $input =~ /[[][@](\w*|\W*\d*)[]]/ or 
+            $input =~ /[[][!](\w*|\W*\d*)[]]/ 
+          ) {
+            add_line "put_$reference = \"$input\";";
+            push @puts, { owner => $reference };
+          }
+        } elsif( $fun eq "dump" and $reference eq "memory" ) {
+          my $next = @tokens[$i++];
+          
+          if( 
+            $next =~ /[[][@](\w*|\W*\d*)[]]/ 
+          ) {
+            add_line "free(put_$1);";
+          } elsif( 
+            $next =~ /[[][*][-][>](\w*|\W*\d*)[]]/ 
+          ) {
+            add_line "free($1);";
+          }
+        } else {
+          spawn_error $token_type_mismatch;
+        }
+      }
     }
   } 
 }
@@ -537,6 +673,34 @@ sub stack_call {
     $result =~ s{// back-stack from '$name'.}{if(back_$name == $id) goto back_point_$id;\n// back-stack from '$name'.};
   }
 }
+
+my @std = (
+  "uncertain"
+);
+
+foreach my $module (@std) {
+  print "presseting module '$module'.. - Status: Waiting";
+	open my $c, '<:encoding(UTF-8)', "./modules/$module/$module.c";
+
+  my $file_c = "";
+  while($linha = <$c>){
+    $file_c = "$file_c$linha";
+	}
+
+  close $c;
+
+  open my $h, '<:encoding(UTF-8)', "./modules/$module/$module.h";
+
+  my $file_h = "";
+  while($linha = <$h>){
+    $file_h = "$file_h$linha";
+	}
+
+  close $h;
+
+  push @modules, { aka => $module, h => $file_h, c => $file_c };
+  print "\rpresseting module '$module'.. - Status: Completed successfully!\n";
+}  
 
 foreach $file_name (@ARGV){
 	print "Reading file: $file_name\n";
@@ -552,13 +716,12 @@ foreach $file_name (@ARGV){
   lexer $content;
   parser();
 
-  $result = "$macros\n$result\n}";
+  $result = "$macros\n$puts\n$result\n}";
 
   $result =~ s{// structs arguments}{$structs};
 
   stack_call();
 
-  print $result;
   open(my $output, '>', "output.c");
   print $output "$result";
   close $output;

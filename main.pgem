@@ -1,11 +1,13 @@
 macro include {-> <stdio.h> <-}
 macro include {-> <stdlib.h> <-}
 
+use [@uncertain]
+
 def print(str: [&u8])
   spawn {-> 
     printf("printed: %s\n", str);
-    free(str); // Memory release required as values ​​are reallocated
   <-}
+  [@memory].dump [*->str]
 end
 
 our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
@@ -13,7 +15,11 @@ pendence print
 arg [!str] msg
 call
 
+[@uncertain].put [@result]
+[@uncertain].init [*->test]
+
+[@memory].dump [@uncertain]
+[@memory].dump [*->msg]
 spawn our {->
-  free(msg);
   return 0;
 <-}
