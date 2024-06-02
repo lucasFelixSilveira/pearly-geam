@@ -595,13 +595,12 @@ sub parser {
           close $c;
           print "created lib: '$name' in your workspace.\n";
 
-          add_macro "include \"$name.h\"";
+          add_macro "include \"lib/$name.h\"";
           $puts = "$puts\nchar *put_$name;";
         }
       }
       $puts = "$puts\n";
     }else {
-      print $token;
       if( $token =~ /[[][@](\w*|\W*\d*)[]]/ ) {
         my $reference = $1;
         my $strong = uc($reference);
