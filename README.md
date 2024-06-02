@@ -6,7 +6,7 @@ Keep in mind that this is a project that I will tinker with in my spare time, no
 Thanks for seeing this. Here's a small example of Hello world in the language (so far, there will be future changes like Bootstraping).
 
 ```pgem
-macro define {-><stdio.h><-}
+macro include {-><stdio.h><-}
 spawn our {->
   printf("Hello, world!");
   return 0;
