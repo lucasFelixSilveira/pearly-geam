@@ -679,7 +679,7 @@ my @std = (
 
 foreach my $module (@std) {
   print "presseting module '$module'.. - Status: Waiting";
-	open my $c, '<:encoding(UTF-8)', "./modules/$module/$module.c";
+	open my $c, '<:encoding(UTF-8)', "./std/$module/$module.c";
 
   my $file_c = "";
   while($linha = <$c>){
@@ -688,7 +688,7 @@ foreach my $module (@std) {
 
   close $c;
 
-  open my $h, '<:encoding(UTF-8)', "./modules/$module/$module.h";
+  open my $h, '<:encoding(UTF-8)', "./std/$module/$module.h";
 
   my $file_h = "";
   while($linha = <$h>){
@@ -721,7 +721,7 @@ foreach $file_name (@ARGV){
 
   stack_call();
 
-  open(my $output, '>', "output.c");
+  open(my $output, '>', "../output.c");
   print $output "$result";
   close $output;
 }

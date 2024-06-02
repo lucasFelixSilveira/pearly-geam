@@ -4,7 +4,7 @@ rm -r lib
 mkdir lib
 cd ..
 cd ..
-perl main.pl $1
+perl transpiler/main.pl $1
 mv output.c target/src
 mv *.c target/src/lib
 mv *.h target/src/lib
