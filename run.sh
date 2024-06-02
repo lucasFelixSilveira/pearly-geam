@@ -15,9 +15,10 @@ echo
 echo 
 
 ./target/bin/release.exe
+echo "-------- Kill code: $?"
 
 echo 
-echo "--------------------------------------"
+echo "-------------------------------------- "
 echo "Press enter to kill your process"
 read
 

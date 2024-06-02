@@ -36,6 +36,54 @@ spawn our {->
 <-}
 ``` 
 
+# Printing numbers
+
+- Using `stringify` standard library
+```pgem
+macro include {-> <stdio.h> <-}
+macro include {-> <stdlib.h> <-}
+use [@stringify]
+
+def print(str: [&u8])
+  spawn {-> 
+    printf("printed: %s\n", str);
+  <-}
+  [@memory].dump [*->str]
+end
+
+our y: i32 = 3;
+our x: [&i8];
+[@stringify].i32 [*->y] => [*->x]
+
+pendence print
+  arg [!str] x
+call
+
+spawn our {->
+  return 0;
+<-}
+```
+- Using C
+
+```pgem
+macro include {-> <stdio.h> <-}
+macro include {-> <stdlib.h> <-}
+
+def print(str: number)
+  spawn {-> 
+    printf("printed: %d\n", number);
+  <-}
+end
+
+our y: i32 = 3;
+pendence print
+  arg [!str] y
+call
+
+spawn our {->
+  return 0;
+<-}
+```
 # Dictionary
 
 - **[@arg]** `Reference to something external`

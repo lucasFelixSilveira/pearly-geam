@@ -110,6 +110,8 @@ my $its_not_literal = 9;
 my $its_not_reference = 10;
 my $its_not_dot = 11;
 my $its_not_pointer = 12;
+my $invalid_reference = 13;
+my $invalid_inference = 14;
 sub spawn_error {
   my $error = shift @_;
   my @errors = (
@@ -125,7 +127,9 @@ sub spawn_error {
     "It's not a Litearal",
     "It's not a Reference",
     "It's not a dot",
-    "It's not a pointer"
+    "It's not a pointer",
+    "Invalid reference",
+    "Invalid inference"
   );
 
   print "Error! - [$error]\n x ", @errors[$error], "\n";
@@ -267,7 +271,7 @@ sub is_pointer {
 sub is_reference {
   my $reference = shift @_;
 
-  if( not $reference =~ /[[][@](\w*|\W*\d*)[]]/ ) {
+  if( not $reference =~ /[[][@](\w*|\W*)/ ) {
     spawn_error $its_not_reference;
   }
 }
@@ -451,7 +455,11 @@ sub parser {
       if( $rslt eq 6 ) {
         add_line "$type;"
       } else {
-        add_line "$type = ", 0;
+        my $term = @tokens[$i++];
+        if( $term eq "spawn" ) { $term = ""; $i--; }
+        else { $term = "$term;" }
+
+        add_line "$type = $term", 0;
       }
     } elsif( $token eq "spawn" ) {
       my $code_block = @tokens[$i++];
@@ -634,6 +642,93 @@ sub parser {
             }
             @puts = @nputs;
           }
+        } elsif( $fun eq "match" and $reference eq "uncertain" ) {
+          my $input = @tokens[$i++];
+          is_pointer $input;
+
+          my $if = @tokens[$i++];
+          if( $if ne "if" ) {
+            spawn_error $token_type_mismatch;
+          }
+
+          my $operator = @tokens[$i++];
+          my $var = substr($input, 4, -1);
+          add_line "uncertain_assert_operator($var, \"$operator\");";
+
+          my $index = @tokens[$i++];
+          if( $index ne "do" and $index ne "send") {
+            spawn_error $token_type_mismatch;
+          }
+
+            my $num;
+            if( $operator eq "Some" or $operator eq "Ok" ) {
+              $num = 1;
+            } elsif( $operator eq "None" or $operator eq "Err" ) {
+              $num = -1;
+            }
+            add_line "if( $var._ == $num ) {";
+            add_end_stack "}";
+
+          if( $index eq "send" ) {
+            my $receiver = @tokens[$i++];
+            is_pointer $receiver;
+
+            my $do = @tokens[$i++];
+            if( $do ne "do" ) {
+              spawn_error $token_type_mismatch;
+            }
+
+            $receiver = substr($receiver, 4, -1);
+            add_line "void *$receiver = $var.value;"
+          }
+        } elsif( ($fun eq "string" or $fun eq "i32") and $reference eq "generic" ) {
+          my $original = @tokens[$i++];
+          is_pointer $original;
+
+          my $first_piece_of_op = @tokens[$i++];
+          if( $first_piece_of_op ne "=" ) { spawn_error $invalid_inference }
+          my $second_piece_of_op = @tokens[$i++];
+          if( $second_piece_of_op ne ">" ) { spawn_error $invalid_inference }
+
+          my $clone = @tokens[$i++];
+          is_pointer $clone;
+
+          my $ori = substr($original, 4, -1);
+          my $new = substr($clone, 4, -1);
+
+          add_line "$new = generic_$fun($ori);"
+        } elsif( ($fun eq "i32") and $reference eq "stringify" ) {
+          my $original = @tokens[$i++];
+          is_pointer $original;
+
+          my $first_piece_of_op = @tokens[$i++];
+          if( $first_piece_of_op ne "=" ) { spawn_error $invalid_inference }
+          my $second_piece_of_op = @tokens[$i++];
+          if( $second_piece_of_op ne ">" ) { spawn_error $invalid_inference }
+
+          my $clone = @tokens[$i++];
+          is_pointer $clone;
+
+          my $ori = substr($original, 4, -1);
+          my $new = substr($clone, 4, -1);
+
+          add_line "$new = stringify_$fun($ori);"
+        } elsif( ($fun eq "gtoi32") and $reference eq "cast" ) {
+          my $original = @tokens[$i++];
+          is_pointer $original;
+
+          my $first_piece_of_op = @tokens[$i++];
+          if( $first_piece_of_op ne "=" ) { spawn_error $invalid_inference }
+          my $second_piece_of_op = @tokens[$i++];
+          if( $second_piece_of_op ne ">" ) { spawn_error $invalid_inference }
+
+          my $clone = @tokens[$i++];
+          is_pointer $clone;
+
+          my $ori = substr($original, 4, -1);
+          my $new = substr($clone, 4, -1);
+
+          add_line "$new = cast_$fun($ori);"
         } elsif( $fun eq "put" ) {
           my $input = @tokens[$i++];
 
@@ -656,6 +751,57 @@ sub parser {
           ) {
             add_line "free($1);";
           }
+        } elsif( $fun eq "set" and $reference eq "uncertain") {
+          my $pointer = @tokens[$i++];
+          is_pointer $pointer;
+
+          my $var = substr($pointer, 4, -1);
+
+          my $to = @tokens[$i++];
+          if( $to ne "to" ) {
+            spawn_error $token_type_mismatch;
+          }
+
+          my $define = @tokens[$i++];
+          is_reference $define;
+
+          $define = substr($define, 2, -1);
+
+          my $define_type;
+          if( 
+            index($define, "Ok") eq 0
+          ) {
+            $define_type = "ok";
+          } elsif( 
+            index($define, "Err") eq 0
+          ) {
+            $define_type = "err";
+          } elsif( 
+            index($define, "some") eq 0
+          ) {
+            $define_type = "some";
+          } else {
+            $define_type = "not_has_type";
+          }
+
+          if( $define_type ne "not_has_content" ) {
+            my $arg = substr($define, length($define_type)+1, -1);
+            add_line "uncertain_def_$define_type(&$var, $arg);";
+          } elsif( $define_type eq "not_has_content" ) {
+            add_line "uncertain_def_none(&$var);";
+          } else {
+            print "$define is not valid\n";
+            spawn_error $invalid_reference;
+          }
+
+        } elsif( $fun eq "debug" ) {
+          my $var = @tokens[$i++];
+          is_pointer $var;
+          $var = substr($var, 4, -1);
+
+          my $ln = "$reference - _debug(&$var);";
+          $ln =~ s{ - }{};
+          add_line $ln;
         } else {
           spawn_error $token_type_mismatch;
         }
@@ -674,7 +820,10 @@ sub stack_call {
 }
 
 my @std = (
-  "uncertain"
+  "uncertain",
+  "generic",
+  "stringify",
+  "cast"
 );
 
 foreach my $module (@std) {
@@ -721,7 +870,7 @@ foreach $file_name (@ARGV){
 
   stack_call();
 
-  open(my $output, '>', "../output.c");
+  open(my $output, '>', "./output.c");
   print $output "$result";
   close $output;
 }

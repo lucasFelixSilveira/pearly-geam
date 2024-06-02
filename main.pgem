@@ -2,15 +2,18 @@ macro include {-> <stdio.h> <-}
 macro include {-> <stdlib.h> <-}
 
 use [@uncertain]
+use [@stringify]
+use [@generic]
+use [@cast]
 
-def print(str: [&u8])
+def print(str: [&i8])
   spawn {-> 
     printf("printed: %s\n", str);
   <-}
   [@memory].dump [*->str]
 end
 
-our msg: [&u8] = spawn our {->"My name is Lucas!";<-}
+our msg: [&i8] = spawn our {->"My name is Lucas!";<-}
 pendence print
 arg [!str] msg
 call
@@ -18,8 +21,28 @@ call
 [@uncertain].put [@result]
 [@uncertain].init [*->test]
 
+our text: [&void];
+our defined: i32 = 4
+[@generic].i32 [*->defined] => [*->text] 
+
+[@uncertain].set [*->test] to [@Ok(text)]
+
+[@uncertain].match [*->test] if Ok send [*->x] do
+  [@uncertain].debug [*->test];
+
+  our y: i32;
+  our z: [&i8];
+  [@cast].gtoi32 [*->x] => [*->y]
+  [@stringify].i32 [*->y] => [*->z]
+
+  pendence print
+    arg [!str] z
+  call
+end
+  
 [@memory].dump [@uncertain]
 [@memory].dump [*->msg]
+[@memory].dump [*->text]
 spawn our {->
   return 0;
 <-}
