@@ -95,3 +95,10 @@ spawn our {->
 - **[16; u8]** `Array`
 - **[_; u8]** `Array of indefinite size`
 - **[&u8]** `Pointer of respective type`
+
+# Standard libraries
+- **@uncertain** => For returns with more than one possible value (of different types)
+- **@stringify** => Transforms other types of values ​​into strings 
+- **@generic** => Transforms types into a single type, accepted by any function as long as the parameter is of type **[&void]**.
+- **@memory** => By default it is already imported. Some functions necessary for HEAP cleaning.
+- **@cast** => Cast from one type to another
