@@ -20,3 +20,5 @@ echo
 echo "--------------------------------------"
 echo "Press enter to kill your process"
 read
+
+rm target/bin/release.exe
