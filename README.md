@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://imgur.com/U6dSc2S.png" alt="Perly-gem-icon">
+  <img src="https://imgur.com/1Cu6txI.png" alt="Perly-gem-icon">
 </div>
 
 It is not a project to be taken forward, but the project consists of:
