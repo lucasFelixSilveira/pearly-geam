@@ -15,8 +15,8 @@ spawn our {->
 Or, you can choose to create a print function, so that you can use it as your main print function.
 
 ```pgem
-macro include {-> <stdio.h> <-}
-macro include {-> <stdlib.h> <-}
+macro include {-><stdio.h><-}
+macro include {-><stdlib.h><-}
 
 def print(str: [&u8])
   spawn {-> 
@@ -40,8 +40,8 @@ spawn our {->
 
 - Using `stringify` standard library
 ```pgem
-macro include {-> <stdio.h> <-}
-macro include {-> <stdlib.h> <-}
+macro include {-><stdio.h><-}
+macro include {-><stdlib.h><-}
 use [@stringify]
 
 def print(str: [&u8])
@@ -66,8 +66,8 @@ spawn our {->
 - Using C
 
 ```pgem
-macro include {-> <stdio.h> <-}
-macro include {-> <stdlib.h> <-}
+macro include {-><stdio.h><-}
+macro include {-><stdlib.h><-}
 
 def print(str: number)
   spawn {-> 
@@ -97,8 +97,8 @@ spawn our {->
 - **[&u8]** `Pointer of respective type`
 
 # Standard libraries
-- **@uncertain** => For returns with more than one possible value (of different types)
-- **@stringify** => Transforms other types of values ​​into strings 
-- **@generic** => Transforms types into a single type, accepted by any function as long as the parameter is of type **[&void]**.
-- **@memory** => By default it is already imported. Some functions necessary for HEAP cleaning.
-- **@cast** => Cast from one type to another
+- **@uncertain** -> For returns with more than one possible value (of different types)
+- **@stringify** -> Transforms other types of values ​​into strings 
+- **@generic** -> Transforms types into a single type, accepted by any function as long as the parameter is of type **[&void]**.
+- **@memory** -> By default it is already imported. Some functions necessary for HEAP cleaning.
+- **@cast** -> Cast from one type to another
