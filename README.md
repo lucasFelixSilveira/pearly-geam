@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://imgur.com/U6dSc2S.png" alt="Perly-gem-icon">
+</div>
+
 It is not a project to be taken forward, but the project consists of:
 a programming language created in Perl, which transpiles to C and is compiled. The purpose of being called "pearly gem" is in reference to Ruby and Perl. Since it will be created in Perl and will have a syntax similar to Ruby.
 
