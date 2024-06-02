@@ -3,7 +3,7 @@
 #include <string.h>
 #include "generic.h"
 
-GENERIC generic_string(char* str) {
+GENERIC generic_string(unsigned char* str) {
   char* copy = malloc(strlen(str) + 1);
   
   if( copy == NULL ) {

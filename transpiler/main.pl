@@ -112,6 +112,7 @@ my $its_not_dot = 11;
 my $its_not_pointer = 12;
 my $invalid_reference = 13;
 my $invalid_inference = 14;
+my $its_not_number = 15;
 sub spawn_error {
   my $error = shift @_;
   my @errors = (
@@ -129,7 +130,8 @@ sub spawn_error {
     "It's not a dot",
     "It's not a pointer",
     "Invalid reference",
-    "Invalid inference"
+    "Invalid inference",
+    "It's not a number"
   );
 
   print "Error! - [$error]\n x ", @errors[$error], "\n";
@@ -220,6 +222,14 @@ sub is_collon {
   $buff = $sign;
   if( validate() ne 5 ) {
     spawn_error $its_not_collon;
+  }
+}
+
+sub is_number {
+  my $number = shift @_;
+
+  if( not $number =~ /[-]?[0-9]+/ ) {
+    spawn_error $its_not_number;
   }
 }
 
@@ -713,6 +723,14 @@ sub parser {
           my $new = substr($clone, 4, -1);
 
           add_line "$new = stringify_$fun($ori);"
+        } elsif( (
+              ($fun eq "exit" and $reference eq "process")
+            ) 
+          ) {
+          my $number = @tokens[$i++];
+          is_number $number;
+
+          add_line "$reference\x5f$fun($number);"
         } elsif( ($fun eq "gtoi32") and $reference eq "cast" ) {
           my $original = @tokens[$i++];
           is_pointer $original;
@@ -823,7 +841,9 @@ my @std = (
   "uncertain",
   "generic",
   "stringify",
-  "cast"
+  "process",
+  "cast",
+  "io"
 );
 
 foreach my $module (@std) {

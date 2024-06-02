@@ -3,6 +3,6 @@
 
 typedef void* GENERIC;
 
-GENERIC generic_string(char* str);
+GENERIC generic_string(unsigned char* str);
 GENERIC generic_i32(int value);
 #endif
