@@ -22,4 +22,10 @@ echo "-------------------------------------- "
 echo "Press enter to kill your process"
 read
 
-rm target/bin/release.exe
+if [ -z "$2" ]; then
+  rm target/bin/release.exe
+fi
+
+if [[ "$2" != "not" ]]; then
+  rm target/bin/release.exe
+fi

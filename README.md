@@ -108,4 +108,4 @@ spawn our {->
 - **@stringify** -> Transforms other types of values ​​into strings 
 - **@generic** -> Transforms types into a single type, accepted by any function as long as the parameter is of type **[&void]**.
 - **@memory** -> By default it is already imported. Some functions necessary for HEAP cleaning.
-- **@cast** -> Cast from one type to another
+- **@io** -> some data input and output methods, via file system and other methods.

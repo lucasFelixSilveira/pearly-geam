@@ -691,7 +691,22 @@ sub parser {
             $receiver = substr($receiver, 4, -1);
             add_line "void *$receiver = $var.value;"
           }
-        } elsif( ($fun eq "string" or $fun eq "i32") and $reference eq "generic" ) {
+        } elsif( (
+          $fun eq "string" or 
+          $fun eq "i32"    or
+
+          $fun eq "toi8"   or
+          $fun eq "toi16"  or
+          $fun eq "toi32"  or
+          $fun eq "toi64"  or
+          $fun eq "toi128" or
+          $fun eq "tou8"   or
+          $fun eq "tou16"  or
+          $fun eq "tou32"  or
+          $fun eq "tou64"  or
+          $fun eq "tou128" or
+        ) and $reference eq "generic" ) {
+
           my $original = @tokens[$i++];
           is_pointer $original;
 
@@ -731,22 +746,6 @@ sub parser {
           is_number $number;
 
           add_line "$reference\x5f$fun($number);"
-        } elsif( ($fun eq "gtoi32") and $reference eq "cast" ) {
-          my $original = @tokens[$i++];
-          is_pointer $original;
-
-          my $first_piece_of_op = @tokens[$i++];
-          if( $first_piece_of_op ne "=" ) { spawn_error $invalid_inference }
-          my $second_piece_of_op = @tokens[$i++];
-          if( $second_piece_of_op ne ">" ) { spawn_error $invalid_inference }
-
-          my $clone = @tokens[$i++];
-          is_pointer $clone;
-
-          my $ori = substr($original, 4, -1);
-          my $new = substr($clone, 4, -1);
-
-          add_line "$new = cast_$fun($ori);"
         } elsif( $fun eq "put" ) {
           my $input = @tokens[$i++];
 
@@ -842,7 +841,6 @@ my @std = (
   "generic",
   "stringify",
   "process",
-  "cast",
   "io"
 );
 
